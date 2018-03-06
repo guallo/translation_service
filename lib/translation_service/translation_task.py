@@ -5,14 +5,14 @@ import threading
 from selenium.webdriver.common.keys import Keys
 
 
-PROGRESS_MARK = '...'
+PROGRESS_MARK = u'...'
 
 
 class CSSSelector(object):
-    SOURCE_INPUT = '#source'
-    RESULT_BOX = '#result_box'
-    SRC_LANG_BUTTON_TPL = '#gt-lang-left [role="button"][value="{}"]'
-    TARGET_LANG_BUTTON_TPL = '#gt-lang-right [role="button"][value="{}"]'
+    SOURCE_INPUT = u'#source'
+    RESULT_BOX = u'#result_box'
+    SRC_LANG_BUTTON_TPL = u'#gt-lang-left [role="button"][value="{}"]'
+    TARGET_LANG_BUTTON_TPL = u'#gt-lang-right [role="button"][value="{}"]'
 
 
 class TranslationTask(object):
