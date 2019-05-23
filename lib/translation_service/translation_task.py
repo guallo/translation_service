@@ -2,6 +2,7 @@ import uuid
 import time
 import threading
 
+from selenium.common import exceptions
 from selenium.webdriver.common.keys import Keys
 
 
@@ -10,9 +11,12 @@ PROGRESS_MARK = u'...'
 
 class CSSSelector(object):
     SOURCE_INPUT = u'#source'
-    RESULT_BOX = u'#result_box'
-    SRC_LANG_BUTTON_TPL = u'#gt-lang-left [role="button"][value="{}"]'
-    TARGET_LANG_BUTTON_TPL = u'#gt-lang-right [role="button"][value="{}"]'
+    TRANSLATIONS = u'.tlid-translation'
+    TRANSLATION_GENDER_INDICATORS = u'.tlid-translation-gender-indicator'
+    TRANSLATION_VERIFIED_BUTTONS = u'.tlid-trans-verified-button'
+    SRC_LANG_BUTTON_TPL = u'.sl-wrap [role="button"][value="{}"]'
+    TARGET_LANG_BUTTON_TPL = u'.tl-wrap [role="button"][value="{}"]'
+    CHECKED_LANG_BUTTONS = u'.jfk-button-checked'
 
 
 class TranslationTask(object):
@@ -85,20 +89,31 @@ class Translate(TranslationTask):
 
         self._wait_until_translated(driver)
 
-        result_box = driver.find_element_by_css_selector(CSSSelector.RESULT_BOX)
         driver.save_screenshot(threading.currentThread().getName() + '-translate-screenshot.png')
-        return result_box.text
+        return self._get_result_box_text(driver)
 
     def _set_src_lang(self, driver):
         src_lang_button = driver.find_element_by_css_selector(
             CSSSelector.SRC_LANG_BUTTON_TPL.format(self.src_lang)
         )
+        checked_lang_buttons = driver.find_elements_by_css_selector(
+            CSSSelector.CHECKED_LANG_BUTTONS
+        )
+        
+        if src_lang_button in checked_lang_buttons:
+            return
         src_lang_button.click()
 
     def _set_target_lang(self, driver):
         target_lang_button = driver.find_element_by_css_selector(
             CSSSelector.TARGET_LANG_BUTTON_TPL.format(self.target_lang)
         )
+        checked_lang_buttons = driver.find_elements_by_css_selector(
+            CSSSelector.CHECKED_LANG_BUTTONS
+        )
+        
+        if target_lang_button in checked_lang_buttons:
+            return
         target_lang_button.click()
 
     def _clear_source_input(self, driver):
@@ -108,13 +123,46 @@ class Translate(TranslationTask):
             source_input.send_keys(Keys.BACKSPACE)
 
     def _wait_until_result_box_is_clear(self, driver):
-        result_box = driver.find_element_by_css_selector(CSSSelector.RESULT_BOX)
+        translations = driver.find_elements_by_css_selector(CSSSelector.TRANSLATIONS)
 
-        while result_box.text:
+        while translations:
             time.sleep(0.1)
 
     def _wait_until_translated(self, driver):
-        result_box = driver.find_element_by_css_selector(CSSSelector.RESULT_BOX)
+        def get_first_translation_text():
+            try:
+                return self._get_result_boxs_elements(driver)[0][0].text
+            except (IndexError, exceptions.StaleElementReferenceException), e:
+                return u''
 
-        while not result_box.text or result_box.text.endswith(PROGRESS_MARK):
+        while (not get_first_translation_text() 
+                or get_first_translation_text().endswith(PROGRESS_MARK)):
             time.sleep(0.1)
+    
+    def _get_result_box_text(self, driver):
+        translations, genders, verifications = self._get_result_boxs_elements(driver)
+        text = u''
+        
+        for i in range(len(translations)):
+            translation_text = translations[i].text
+            gender_text = genders[i].text if len(genders) > i else u''
+            verification_text = (u'\u2714' if len(verifications) > i 
+                and verifications[i].is_displayed() else u'')
+            
+            text += u'\n' if text else u''
+            text += translation_text + gender_text + verification_text
+        
+        return text
+    
+    def _get_result_boxs_elements(self, driver):
+        translations = driver.find_elements_by_css_selector(
+            CSSSelector.TRANSLATIONS
+        )
+        genders = driver.find_elements_by_css_selector(
+            CSSSelector.TRANSLATION_GENDER_INDICATORS
+        )
+        verifications = driver.find_elements_by_css_selector(
+            CSSSelector.TRANSLATION_VERIFIED_BUTTONS
+        )
+        
+        return (translations, genders, verifications)
