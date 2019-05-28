@@ -1,8 +1,6 @@
 import time
 import uuid
 
-from .config import config
-
 
 class Session(dict):
     def __init__(self, *args, **kwargs):
@@ -28,6 +26,13 @@ class Session(dict):
     
     def set_expiration_time(self, expiration_time):
         self._expiration_time = expiration_time
+    
+    def touch(self, seconds):
+        assert not self.is_expired()
+        
+        if self._expiration_time < 0:
+            return
+        self.set_expiration_time(time.time() + seconds)
     
     def is_expired(self):
         return self._expiration_time >= 0 and time.time() >= self._expiration_time

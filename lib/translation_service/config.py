@@ -32,7 +32,7 @@ config = {
     'window_size': (1366, 768),
     'google_translate_url': 'https://translate.google.com/',
     # session
-    'session_duration': 3600,  # max seconds before session expires
+    'session_duration': 300,  # max seconds without touch'ing the session before it expires
     'passwd_db': {
         # 'username': 'password'
         'user1': 'passwd1',

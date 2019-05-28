@@ -15,6 +15,7 @@ def _validate_session(instance_method):
             del self._sessions[sid]
             raise AssertionError('expired session')
         
+        self._sessions[sid].touch(config['session_duration'])
         return instance_method(self, sid, *args, **kwargs)
     return session_validator
 
@@ -52,7 +53,7 @@ class TranslationService(object):
         
         for sid, s in self._sessions.iteritems():
             if s['username'] == username:
-                s.set_expiration_time(time.time() + config['session_duration'])
+                s.touch(config['session_duration'])
                 return sid
         
         s = session.Session(
